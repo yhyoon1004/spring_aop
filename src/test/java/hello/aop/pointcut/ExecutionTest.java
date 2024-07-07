@@ -2,6 +2,7 @@ package hello.aop.pointcut;
 
 import hello.aop.member.MemberServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.aop.aspectj.AspectJExpressionPointcut;
@@ -21,5 +22,57 @@ public class ExecutionTest {
     @Test
     void printMethod() {
         log.info("helloMethod = {} ", helloMethod);
+    }
+
+    @Test
+    void exactMatch() {
+        // public 접근 제어자 / String 반환타입 / hello.aop.member.MemberServiceImpl.hello 선언타입.메서드명 / String 파라미터
+        pointcut.setExpression("execution(public String hello.aop.member.MemberServiceImpl.hello(String))");
+        Assertions.assertThat(pointcut.matches(helloMethod,MemberServiceImpl.class)).isTrue();
+    }
+
+    @Test
+    void allMatch() {
+        // 접근제어자 생략 / 반환타입 * = 모두 / 선언타입.메서드명 * = 모두 / 파라미터 (..) = 어떤타입이던 개수제한 없이 모두
+        pointcut.setExpression("execution(* * (..))");
+        Assertions.assertThat(pointcut.matches(helloMethod,MemberServiceImpl.class)).isTrue();
+    }
+
+    @Test
+    void nameMatch() {  //메서드 명이 hello 인 것 만
+        pointcut.setExpression("execution(* hello (..))");
+        Assertions.assertThat(pointcut.matches(helloMethod,MemberServiceImpl.class)).isTrue();
+    }
+
+    @Test
+    void nameMatchStar1() {  //메서드 명이 hel 로 시작하는 패턴 매칭
+        pointcut.setExpression("execution(* hel* (..))");
+        Assertions.assertThat(pointcut.matches(helloMethod,MemberServiceImpl.class)).isTrue();
+    }
+    @Test
+    void nameMatchStar2() {  //메서드 명이  ~hel~ 가 들어가는 패턴 매칭
+        pointcut.setExpression("execution(* *el* (..))");
+        Assertions.assertThat(pointcut.matches(helloMethod,MemberServiceImpl.class)).isTrue();
+    }
+    @Test
+    void nameMatchFalse() {  //매칭 실패 케이스
+        pointcut.setExpression("execution(* none (..))");
+        Assertions.assertThat(pointcut.matches(helloMethod,MemberServiceImpl.class)).isFalse();
+    }
+
+    @Test
+    void packageExactMatch1() {
+        pointcut.setExpression("execution(* hello.aop.member.MemberServiceImpl.hello(..))");
+        Assertions.assertThat(pointcut.matches(helloMethod,MemberServiceImpl.class)).isTrue();
+    }
+    @Test
+    void packageExactMatch2() {  //hello.aop.member 패키지의 모든 객체 의 모든 메서드
+        pointcut.setExpression("execution(* hello.aop.member.*.*(..))");
+        Assertions.assertThat(pointcut.matches(helloMethod,MemberServiceImpl.class)).isTrue();
+    }
+    @Test
+    void packageExactMatch3() {  //hello.aop 패키지의 하위 패키지의 모든 객체 의 모든 메서드
+        pointcut.setExpression("execution(* hello.aop..*.*(..))");
+        Assertions.assertThat(pointcut.matches(helloMethod,MemberServiceImpl.class)).isTrue();
     }
 }
